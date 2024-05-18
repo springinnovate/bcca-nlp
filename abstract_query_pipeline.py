@@ -33,8 +33,8 @@ logging.getLogger('PyPDF2._reader').setLevel(logging.ERROR)
 logging.getLogger('httpx').setLevel(logging.ERROR)
 LOGGER = logging.getLogger(__name__)
 
-#GPT_MODEL = 'gpt-4o'
-GPT_MODEL = 'gpt-3.5-turbo'
+GPT_MODEL = 'gpt-4o'
+#GPT_MODEL = 'gpt-3.5-turbo'
 TOP_K = 100
 
 # how big of a window to build around sentences
@@ -163,7 +163,6 @@ def main():
             article_list.append((
                 os.path.basename(file_path),
                 parse_file(file_path)))
-            break
 
         expanded_sentence_windows = [
             (file_path, page_num, sentence_window)
