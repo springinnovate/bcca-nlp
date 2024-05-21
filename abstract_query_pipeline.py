@@ -18,8 +18,8 @@ import spacy
 import torch
 import tiktoken
 
-#GPT_MODEL = 'gpt-4o'
-GPT_MODEL = 'gpt-3.5-turbo'
+GPT_MODEL = 'gpt-4o'
+#GPT_MODEL = 'gpt-3.5-turbo'
 ENCODING = tiktoken.encoding_for_model(GPT_MODEL)
 
 logging.basicConfig(
@@ -199,10 +199,6 @@ def main():
         relevant_files = [file_path_list[idx] for idx in indices[0]]
 
         answers = []
-        # for context, page_number, filename, score in zip(
-        #         retrieved_windows, relevant_page_numbers, relevant_files, distances[0]):
-        #     answers.append((context, score, page_number, filename))
-
 
         for qa_model_id, qa_model in qa_model_list:
             print(qa_model_id)
@@ -262,7 +258,9 @@ def main():
         for chunk in stream:
             if chunk.choices[0].delta.content is not None:
                 response += chunk.choices[0].delta.content
-        index_matches = re.findall(r'\(reference index: \{?(\d+)\}?\)', response)
+        index_matches = re.findall(r'\(reference index: \{?(\d+(?:, \d+)*?)\}?\)', response)
+        parsed_indexes = set([
+            int(num) for match in index_matches for num in match.split(', ')])
         wrapper = textwrap.TextWrapper(
             width=80,
             initial_indent='    ',  # Initial indent for the first line
@@ -277,7 +275,7 @@ def main():
         )
 
         processed_indexes = set()
-        for index in sorted(index_matches):
+        for index in sorted(parsed_indexes):
             index = int(index)
             if index in processed_indexes:
                 continue
