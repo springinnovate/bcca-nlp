@@ -1,4 +1,3 @@
-from concurrent.futures import ProcessPoolExecutor
 import glob
 import hashlib
 import logging
@@ -6,11 +5,9 @@ import numpy
 import os
 import pickle
 import re
-import sys
 import textwrap
 
 from dotenv import load_dotenv
-from nltk.tokenize import sent_tokenize
 from openai import OpenAI
 from transformers import pipeline
 import faiss
@@ -22,7 +19,6 @@ import torch
 
 
 GPT_MODEL = 'gpt-4o'
-#GPT_MODEL = 'gpt-3.5-turbo'
 ENCODING = tiktoken.encoding_for_model(GPT_MODEL)
 
 logging.basicConfig(
@@ -36,8 +32,6 @@ logging.getLogger('PyPDF2._reader').setLevel(logging.ERROR)
 logging.getLogger('httpx').setLevel(logging.ERROR)
 LOGGER = logging.getLogger(__name__)
 
-GPT_MODEL = 'gpt-4o'
-#GPT_MODEL = 'gpt-3.5-turbo'
 TOP_K = 100
 
 # how big of a window to build around sentences
