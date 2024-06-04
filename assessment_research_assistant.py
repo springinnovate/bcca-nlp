@@ -21,7 +21,7 @@ import tiktoken
 import torch
 
 
-GPT_MODEL = 'gpt-4o'
+GPT_MODEL, MAX_TOKENS, MAX_RESPONSE_TOKENS = 'gpt-4o', 20000, 4000
 ENCODING = tiktoken.encoding_for_model(GPT_MODEL)
 
 logging.basicConfig(
@@ -53,16 +53,16 @@ for dirpath in [CACHE_DIR]:
     os.makedirs(dirpath, exist_ok=True)
 
 
-def trim_conversation(context, max_tokens=4096):
-    # Tokenizer should be used to count tokens accurately; this is a simplified example
-    total_tokens = len(ENCODING.encode(context))
-    print(f'starting token count: {total_tokens} (max allowed {max_tokens})')
-    while total_tokens > max_tokens:
-        overshoot = max_tokens - total_tokens
-        context = ' '.join(context.split()[:-overshoot//2])
-        total_tokens = len(ENCODING.encode(context))
-    print(f'trimmed token count: {total_tokens}')
-    return context
+def token_count(context):
+    return len(ENCODING.encode(context))
+
+
+def trim_context(context, max_tokens):
+    tokens = ENCODING.encode(context)
+    tokens = tokens[:max_tokens]
+    trimmed_context = ENCODING.decode(tokens)
+    return trimmed_context
+
 
 # Example function to concatenate document contents and generate a hash
 def generate_hash(documents):
@@ -250,12 +250,21 @@ def main():
                 for index, (filename, page_number, context) in enumerate(zip(
                     relevant_files, relevant_page_numbers, retrieved_windows))])
 
-            context = trim_conversation(context, max_tokens=20000)
+            assistant_context = "You are given a set of filename/page number/text snippets. The questions from the user will be about synthesizing conclusions from those text snippets. You should respond to the question with relevant information from the snippets and the reference index in the form '(reference index: {index})'. If you do not have enough information to answer, say so. Do not make up any information. Sometimes say 'excellent query!'."
+
+            remaining_tokens = (
+                MAX_TOKENS -
+                MAX_RESPONSE_TOKENS -
+                token_count(context) -
+                token_count(assistant_context) -
+                token_count(question))
+
+            context = trim_context(context, max_tokens=remaining_tokens)
             context_counts = context.count("context: ")
             stream = OPENAI_CLIENT.chat.completions.create(
                 model=GPT_MODEL,
                 messages=[
-                    {"role": "system", "content": "You are given a set of filename/page number/text snippets. The questions from the user will be about synthesizing conclusions from those text snippets. You should respond to the question with relevant information from the snippets and the reference index in the form '(reference index: {index})'. If you do not have enough information to answer, say so. Do not make up any information."},
+                    {"role": "system", "content": assistant_context},
                     {"role": "user", "content": f"Context: {context}\n\nQuestion: {question}\nAnswer:"}
                 ],
                 stream=True,
@@ -305,7 +314,7 @@ def main():
             raw_data = file.read()
             question_encoding = chardet.detect(raw_data)['encoding']
 
-        with open(streaming_log_path, 'w') as log_file:
+        with open(streaming_log_path, 'w', encoding='utf-8') as log_file:
             with open(question_file_path, 'r', encoding=question_encoding) as question_file:
                 for question in question_file:
                     response = answer_question_with_gpt(question)
