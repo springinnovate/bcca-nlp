@@ -1,3 +1,6 @@
+import argparse
+import chardet
+import datetime
 import glob
 import hashlib
 import logging
@@ -122,6 +125,12 @@ def load_embeddings(filename):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='CONVEI Research Assistant')
+    parser.add_argument(
+        '--question-file', type=str, help='Questions read from file, one per line')
+    args = parser.parse_args()
+    question_file_path = args.question_file
+
     file_paths = [
         file_path
         for file_pattern in DATA_STORE
@@ -229,8 +238,10 @@ def main():
             distances, indices = document_distance_index.search(
                 question_embedding, TOP_K)
 
-            retrieved_windows = [sentence_windows[idx] for idx in indices[0]]
-            relevant_page_numbers = [page_num_list[idx] for idx in indices[0]]
+            retrieved_windows = [
+                sentence_windows[idx] for idx in indices[0]]
+            relevant_page_numbers = [
+                page_num_list[idx] for idx in indices[0]]
             relevant_files = [file_path_list[idx] for idx in indices[0]]
 
             # Concatenate the retrieved documents to form the context
@@ -248,9 +259,9 @@ def main():
                     {"role": "user", "content": f"Context: {context}\n\nQuestion: {question}\nAnswer:"}
                 ],
                 stream=True,
-                max_tokens=4000  # Adjust the number of tokens to get a longer answer
+                max_tokens=4000
             )
-            response = f'From {context_counts} references to the texts -- '
+            response = f'From {context_counts} abstracts -- '
             for chunk in stream:
                 if chunk.choices[0].delta.content is not None:
                     response += chunk.choices[0].delta.content
@@ -285,6 +296,22 @@ def main():
             return wrapped_response
         except openai.APIError as e:
             print(f'There was an error, try your question again.\nError: {e}')
+
+    current_time = datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+    streaming_log_path = os.path.join(f'becca_nlp_answers_{current_time}.txt')
+
+    if question_file_path is not None:
+        with open(question_file_path, 'rb') as file:
+            raw_data = file.read()
+            question_encoding = chardet.detect(raw_data)['encoding']
+
+        with open(streaming_log_path, 'w') as log_file:
+            with open(question_file_path, 'r', encoding=question_encoding) as question_file:
+                for question in question_file:
+                    response = answer_question_with_gpt(question)
+                    log_file.write(
+                        f'*************\nQuestion: {question}\nAnswer: {response}\n\n')
+        return
 
     while True:
         question = input(
