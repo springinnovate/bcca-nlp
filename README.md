@@ -35,7 +35,7 @@ Usage
    Execute the script with the input directory and the questions:
 
 ```
-      python ask_questions.py --input_dir /path/to/papers --questions_file questions.txt
+      python process_papers.py --input_dir /path/to/papers --questions_file questions.txt
 ```
 
 4. View the Results
