@@ -22,21 +22,21 @@ Usage
 
    Create a text file or a list in the script with the questions you want to ask. Example:
 
-   .. code-block:: python
-
+```
       questions = [
           "What is the main objective of the paper?",
           "What methods were used in the research?",
           "What are the key findings?"
       ]
+```
 
 3. Run the Pipeline
 
    Execute the script with the input directory and the questions:
 
-   .. code-block:: bash
-
+```
       python ask_questions.py --input_dir /path/to/papers --questions_file questions.txt
+```
 
 4. View the Results
 
@@ -50,9 +50,9 @@ A sample CSV output might look like this:
 +-----------------------------+------------------------------------------+------------------------------------------------------+
 | Paper Title                 | Question                                 | Answer                                               |
 +=============================+==========================================+======================================================+
-| "Deep Learning in Medicine" | What is the main objective of the paper? | The main objective is to explore deep learning...     |
+| "Deep Learning in Medicine" | What is the main objective of the paper? | The main objective is to explore deep learning...    |
 +-----------------------------+------------------------------------------+------------------------------------------------------+
-| "AI and Ethics"             | What methods were used in the research?  | The research used a combination of qualitative...     |
+| "AI and Ethics"             | What methods were used in the research?  | The research used a combination of qualitative...    |
 +-----------------------------+------------------------------------------+------------------------------------------------------+
 
 License
