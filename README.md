@@ -47,13 +47,10 @@ Example Output
 
 A sample CSV output might look like this:
 
-+-----------------------------+------------------------------------------+------------------------------------------------------+
-| Paper Title                 | Question                                 | Answer                                               |
-+=============================+==========================================+======================================================+
-| "Deep Learning in Medicine" | What is the main objective of the paper? | The main objective is to explore deep learning...    |
-+-----------------------------+------------------------------------------+------------------------------------------------------+
-| "AI and Ethics"             | What methods were used in the research?  | The research used a combination of qualitative...    |
-+-----------------------------+------------------------------------------+------------------------------------------------------+
+| Paper Title | Question | Answer |
+|-------------|----------|--------|
+| "Deep Learning in Medicine" | What is the main objective of the paper? | The main objective is to explore deep learning... |
+| "AI and Ethics" | What methods were used in the research? | The research used a combination of qualitative... |
 
 License
 -------
