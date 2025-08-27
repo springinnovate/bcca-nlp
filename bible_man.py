@@ -102,7 +102,7 @@ def embed_texts(texts: Sequence[str]) -> List[List[float]]:
 
 def llm_clean_query(user_q: str) -> str:
     prompt = (
-        "You rewrite user questions into a concise standalone search query.\n"
+        "You rewrite user questions into a concise standalone search query that can be used to compare similarity to embeddings in single line statements from the Bible.\n"
         "Rules:\n"
         "- Keep the same language.\n"
         "- Remove filler words.\n"
@@ -167,8 +167,12 @@ def ingest_textfile(path: str, batch_size: int = 256):
         with open(path, "r", encoding="utf-8") as f:
             rows = []
             for i, line in enumerate(f, start=1):
-                m = re.match(r"^([A-Za-z]+\s+\d+:\d+)\s+(.*)$", line)
-                line_id, text = [x.strip() for x in m.groups()]
+                m = re.match(r"^(.*\d+:\d+)\s+(.*)$", line)
+                try:
+                    line_id, text = [x.strip() for x in m.groups()]
+                except AttributeError:
+                    print(f'FAILED: "{line}"')
+                    raise
                 if not text:
                     continue
                 rows.append(Statement(line_id=line_id, text=text))
@@ -210,8 +214,9 @@ def search_similar(
 ) -> List[SearchResult]:
     # Clean -> embed
     cleaned = llm_clean_query(query_text)
+    print(f"cleaned question: {cleaned}")
     q_vec = np.array(embed_texts([cleaned])[0], dtype=np.float32)
-
+    print(f"{len(q_vec)} length vector of embeddings")
     # Pull embeddings (for larger DBs, consider vector DB or pgvector)
     rows = list(
         sess.execute(
@@ -224,22 +229,31 @@ def search_similar(
         )
     ).copy()
 
+    print(f"extracted {len(rows)} rows to compare")
+
     sims: List[SearchResult] = []
     for sid, line_id, text_val, emb in rows:
         v = np.array(emb, dtype=np.float32)
         sim = cosine_sim(q_vec, v)
-        if sim >= min_sim:
-            sims.append(
-                SearchResult(id=sid, line_id=line_id, text=text_val, similarity=sim)
-            )
+        # if sim >= min_sim:
+        sims.append(
+            SearchResult(id=sid, line_id=line_id, text=text_val, similarity=sim)
+        )
+
+    print(f"found {len(sims)} similar results")
 
     # Always take top_k by similarity; if nothing meets threshold, return best few
     sims.sort(key=lambda r: r.similarity, reverse=True)
-    if sims:
-        top_score = sims[0].similarity
-        dyn_cut = max(min_sim, top_score * 0.92)  # dynamic tightening
-        filtered = [s for s in sims if s.similarity >= dyn_cut]
-        return (filtered[:top_k]) or sims[:top_k]
+    for sim in sims:
+        print(f"{sim.similarity}: {sim.text}")
+    return
+    # if sims:
+    #     top_score = sims[0].similarity
+    #     dyn_cut = max(min_sim, top_score * 0.92)  # dynamic tightening
+    #     filtered = [s for s in sims if s.similarity >= dyn_cut]
+    #     return (filtered[:top_k]) or sims[:top_k]
+
+    print(f"of these only {top_k} will be used")
     return sims[:top_k]
 
 
@@ -282,7 +296,7 @@ def _cmd_init_db(_args):
 
 def _cmd_ingest(args):
     init_db()
-    ingest_textfile(args.path, batch_size=args.batch_size, reembed=args.reembed)
+    ingest_textfile(args.path, batch_size=args.batch_size)
     print("ok")
 
 
@@ -311,9 +325,6 @@ def main():
     p1 = sub.add_parser("ingest", help="ingest a text file and build embeddings")
     p1.add_argument("path", help="path to text file with one statement per line")
     p1.add_argument("--batch-size", type=int, default=256)
-    p1.add_argument(
-        "--reembed", action="store_true", help="drop and re-ingest + re-embed"
-    )
     p1.set_defaults(func=_cmd_ingest)
 
     p2 = sub.add_parser("ask", help="ask a question")
